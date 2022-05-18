@@ -1,0 +1,64 @@
+From df7e218d8fad006cec60befca7510d8ae9ceee5f Mon Sep 17 00:00:00 2001
+From: FascinatedBox <FascinatedBox@protonmail.com>
+Date: Thu, 5 May 2022 05:05:05 -0700
+Subject: [PATCH] DSTM patch using an environment variable toggle.
+
+---
+ src/c_client.py | 6 ++++++
+ src/xcb_in.c    | 9 +++++++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/src/c_client.py b/src/c_client.py
+index fd256f0..3b91c2d 100644
+--- a/src/c_client.py
++++ b/src/c_client.py
+@@ -1417,6 +1417,12 @@ def _c_serialize(context, self):
+ 
+     elif 'sizeof' == context:
+         param_names = [p[2] for p in params]
++
++        try:
++            self.length_expr
++        except AttributeError:
++            self.length_expr = None
++
+         if self.length_expr is not None:
+             _c('    const %s *_aux = (%s *)_buffer;', self.c_type, self.c_type)
+             prefix = [('_aux', '->', self)]
+diff --git a/src/xcb_in.c b/src/xcb_in.c
+index c9a264d..1c2777e 100644
+--- a/src/xcb_in.c
++++ b/src/xcb_in.c
+@@ -52,6 +52,8 @@
+ #include "xcbext.h"
+ #include "xcbint.h"
+ 
++static int xcb_dstm_block_focus_out = 0;
++
+ #define XCB_ERROR 0
+ #define XCB_REPLY 1
+ #define XCB_XGE_EVENT 35
+@@ -716,6 +718,10 @@ static xcb_generic_event_t *poll_for_next_event(xcb_connection_t *c, int queued)
+         pthread_mutex_lock(&c->iolock);
+         /* FIXME: follow X meets Z architecture changes. */
+         ret = get_event(c);
++
++        if (ret && (ret->response_type & ~0x80) == XCB_FOCUS_OUT && xcb_dstm_block_focus_out)
++            ret->response_type = XCB_FOCUS_IN;
++
+         if(!ret && !queued && c->in.reading == 0 && _xcb_in_read(c)) /* _xcb_in_read shuts down the connection on error */
+             ret = get_event(c);
+         pthread_mutex_unlock(&c->iolock);
+@@ -908,6 +914,9 @@ int _xcb_in_init(_xcb_in *in)
+     in->events_tail = &in->events;
+     in->pending_replies_tail = &in->pending_replies;
+ 
++    if (getenv("DSTM_BLOCK_FOCUS_OUT") != NULL)
++        xcb_dstm_block_focus_out = 1;
++
+     return 1;
+ }
+ 
+-- 
+2.25.1
+

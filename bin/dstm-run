@@ -1,0 +1,26 @@
+#!/bin/bash
+
+DSTM_LIB=$1
+
+if [ "$DSTM_LIB" = "xcb64" ]; then
+    LD_PRELOAD="${HOME}/.config/dstm/libdstmxcb-64.so"
+    shift
+elif [ "$DSTM_LIB" = "xcb32" ]; then
+    LD_PRELOAD="${HOME}/.config/dstm/libdstmxcb-32.so"
+    shift
+elif [ "$DSTM_LIB" = "xlib64" ]; then
+    LD_PRELOAD="${HOME}/.config/dstm/libdstmX11-64.so"
+    shift
+elif [ "$DSTM_LIB" = "xlib32" ]; then
+    LD_PRELOAD="${HOME}/.config/dstm/libdstmX11-32.so"
+    shift
+else
+    # One of 'em should do the trick.
+    LD_PRELOAD="${HOME}/.config/dstm/libdstmX11-32.so
+                ${HOME}/.config/dstm/libdstmX11-64.so
+                ${HOME}/.config/dstm/libdstmxcb-32.so
+                ${HOME}/.config/dstm/libdstmxcb-64.so"
+fi
+
+export DSTM_BLOCK_FOCUS_OUT=1
+"$@" &

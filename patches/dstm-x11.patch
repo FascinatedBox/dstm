@@ -1,0 +1,64 @@
+From c5e2514338bc7e690a7d0f1578fea21f30031952 Mon Sep 17 00:00:00 2001
+From: FascinatedBox <FascinatedBox@protonmail.com>
+Date: Thu, 5 May 2022 05:05:05 -0700
+Subject: [PATCH libX11] DSTM patch using an environment variable toggle.
+
+---
+ src/OpenDis.c | 5 +++++
+ src/XlibInt.c | 9 ++++++++-
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/OpenDis.c b/src/OpenDis.c
+index 5017b040..292711b3 100644
+--- a/src/OpenDis.c
++++ b/src/OpenDis.c
+@@ -56,6 +56,8 @@ static xReq _dummy_request = {
+ 
+ static void OutOfMemory(Display *dpy);
+ 
++int xlib_dstm_block_focus_out = 0;
++
+ /*
+  * Connects to a server, creates a Display object and returns a pointer to
+  * the newly created Display back to the caller.
+@@ -87,6 +89,9 @@ XOpenDisplay (
+ 	long int conn_buf_size;
+ 	char *xlib_buffer_size;
+ 
++	if (getenv("DSTM_BLOCK_FOCUS_OUT") != NULL)
++		xlib_dstm_block_focus_out = 1;
++
+ 	/*
+ 	 * If the display specifier string supplied as an argument to this
+ 	 * routine is NULL or a pointer to NULL, read the DISPLAY variable.
+diff --git a/src/XlibInt.c b/src/XlibInt.c
+index 297b7711..db20be02 100644
+--- a/src/XlibInt.c
++++ b/src/XlibInt.c
+@@ -132,6 +132,8 @@ xthread_t (*_Xthread_self_fn)(void) = NULL;
+ 
+ #define POLLFD_CACHE_SIZE 5
+ 
++extern int xlib_dstm_block_focus_out;
++
+ /* initialize the struct array passed to poll() below */
+ Bool _XPollfdCacheInit(
+     Display *dpy)
+@@ -972,8 +974,13 @@ _XWireToEvent(
+ 			ev->detail	= event->u.u.detail;
+ 		}
+ 		  break;
+-	      case FocusIn:
+ 	      case FocusOut:
++            if (xlib_dstm_block_focus_out) {
++                re->type = FocusIn;
++                return(_XUnknownWireEvent(dpy, re, event));
++            }
++
++	      case FocusIn:
+ 		{
+ 			register XFocusChangeEvent *ev = (XFocusChangeEvent *) re;
+ 			ev->window 	= event->u.focus.window;
+-- 
+2.25.1
+
