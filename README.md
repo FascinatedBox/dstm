@@ -1,6 +1,12 @@
 Don't Stop the Music
 ====================
 
+### Notice
+
+I am no longer maintaining or even using this repository,. I've found that, in
+many cases, this does not work. I think it should, but it simply does not. I
+have left it up in case anyone finds it useful.
+
 ### Intro
 
 I use Linux and I like to stream various games on Twitch. Sometimes I switch
